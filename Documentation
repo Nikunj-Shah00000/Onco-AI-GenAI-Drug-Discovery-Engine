@@ -1,0 +1,136 @@
+Project Name: OncoAI - The Autonomous Cancer Drug Discovery Cortex
+Tagline: From Genomic Data to Lead Compounds. Autonomously.
+The Problem
+Traditional cancer drug discovery is a "needle in a haystack" problem. It takes 10-15 years and over $2 billion to bring a single drug to market. A massive bottleneck is the initial screening phase, where researchers must physically test millions of chemical compounds against a cancer target (like a mutated protein), which is slow, expensive, and prone to failure.
+
+The Solution: OncoAI
+OncoAI is an intelligent, autonomous platform that acts as a "Generative Brain" for oncologists and researchers. Instead of brute-force physical testing, it uses a multi-stage AI pipeline on AWS to:
+
+Understand the Target: Analyze the specific genetic mutation driving a patient's cancer or a researcher's project.
+
+Generate & Screen: Use Generative AI to create novel drug-like molecules or screen billions of existing compounds in silico (via computer simulation).
+
+Learn & Remember: Utilize a Periodic Memory System to learn from every simulation, improving its predictions over time and avoiding past mistakes.
+
+Validate: Simulate the physical world using computational methods (Docking) to ensure the AI's top picks would actually work in a test tube.
+
+Key Innovations (What makes us finalists)
+The Periodic Memory System (The "Brain"): This is our core differentiator.
+
+Standard AI: You train a model once, and it's static. It doesn't learn from its failures.
+
+OncoAI's Memory: After every batch of predictions, we run a "Post-Mortem Analysis."
+
+If the AI predicted a compound would bind strongly (high score), but the computational validation (Docking) showed it wouldn't (low score), this "failure" is encoded into a vector and stored in a vector database (Memory Bank) .
+
+Before making new predictions, OncoAI queries this Memory Bank to see if the new compound is similar to one that failed before. It then adjusts its confidence score downward. This creates a continuous learning loop, making the system smarter with every run.
+
+Generative Chemistry Module: We don't just screen known compounds. We use a Generative Adversarial Network (GAN) or a Variational Autoencoder (VAE) fine-tuned on drug-like molecules. Given a target protein (e.g., EGFR), the AI "imagines" millions of new molecular structures that could potentially fit, dramatically expanding the search space beyond existing libraries.
+
+Multi-Objective Optimization: Cancer drugs can't just be "strong"; they must also be safe. OncoAI simultaneously optimizes for:
+
+High Binding Affinity (Will it stick?)
+
+Low Toxicity (Will it kill healthy cells?) using a pre-trained toxicity prediction model.
+
+ADME Properties (Can the body absorb it? Is it stable?) using rule-based filters (Lipinski's Rule of Five).
+
+High-Level Architecture (AWS-Native)
+This architecture is designed for serverless operation and scalability.
+
+User Interface (Researcher's Portal):
+
+AWS Amplify: Hosts a React.js or Streamlit application.
+
+Function: Researcher inputs a protein target (e.g., "EGFR L858R mutation") or selects from a list. The dashboard visualizes results: 2D/3D structures of top drug candidates, binding scores, toxicity plots, and the system's "Memory Bank" learning history.
+
+Orchestration Layer (The Brain's Logic):
+
+AWS Step Functions: The heart of the workflow. It orchestrates the entire pipeline without any manual intervention. It manages the sequence of events, error handling, and parallel processing.
+
+State 1: Input Validation & Target Fetching.
+
+State 2: Parallel AI Screening.
+
+State 3: Memory Recall & Re-ranking.
+
+State 4: Computational Validation.
+
+State 5: Memory Update.
+
+Core AI & Memory Layer:
+
+Amazon SageMaker: Hosts the trained AI models.
+
+Generative Model (GAN/VAE): Deployed as a real-time endpoint to generate novel molecular fingerprints (e.g., SMILES strings).
+
+Binding Affinity Predictor (Graph Neural Network - GNN): Takes a protein structure and a molecule as input and predicts a binding score (0-1).
+
+Amazon OpenSearch Serverless (Vector Engine): This is our Periodic Memory Bank.
+
+Data Stored: Embeddings (vector representations) of "failed" molecule-protein pairs.
+
+Function: During screening, the current top candidates are compared against this bank. If a candidate is too close to a previously failed vector, its score is penalized.
+
+Computational Validation Layer (The Reality Check):
+
+AWS Batch / Fargate: Runs containerized jobs for computationally intensive tasks.
+
+Task: Runs AutoDock Vina (or a similar open-source docking tool).
+
+Process: Takes the top 100 AI-suggested molecules and physically simulates them "docking" into the protein's 3D structure. This provides a physics-based ground truth.
+
+Data & Feedback Loop:
+
+Amazon S3: Data lake for input data (protein structures from PDB, compound libraries), intermediate results, and final outputs.
+
+Amazon DynamoDB: Stores metadata about each screening campaign, user sessions, and final results for quick retrieval by the frontend.
+
+How It Works: The User Journey (Step-by-Step)
+Input: A cancer researcher logs in and specifies a target protein (e.g., "BRAF V600E"). They click "Start AI-Driven Discovery."
+
+Orchestration: The AWS Step Function workflow triggers.
+
+Generative Phase: OncoAI calls the Generative Model on SageMaker, creating 1 million novel drug-like molecule candidates. (Cost-effective using batch inference).
+
+Memory Recall: Before prediction, the system queries the OpenSearch Memory Bank. "Has any of these novel molecules, or ones very similar, been tried against a similar protein and failed validation before?" The results are attached to the molecules as a "memory context."
+
+AI Screening: The GNN Binding Predictor rapidly screens all 1 million candidates, incorporating the memory context to down-rank historically "bad" ideas. It outputs the top 1,000 candidates.
+
+Multi-Objective Filtering: The Toxicity and ADME models filter the 1,000 down to the top 100 "safe & effective" candidates.
+
+Computational Validation (Docking): These top 100 are sent to AWS Batch, which runs AutoDock Vina to simulate their real-world binding. This produces a "Gold Standard" binding energy score.
+
+Memory Update: The system compares the AI's predicted binding score with the actual docking score for these 100 molecules.
+
+If |AI Score - Docking Score| > Threshold: This is a learning opportunity. The molecule-protein pair is vectorized and stored as a "memory" in OpenSearch, with a tag indicating the type of error (e.g., "AI Over-prediction").
+
+Result: The final list of top 10 candidates (ranked by a combination of AI score, safety, and docking score) is displayed to the user on the Amplify dashboard, ready for them to synthesize and test in a real lab.
+
+Why This Wins the Hackathon
+Fully Functional & Deployable: It's not just an idea. The architecture uses fully managed AWS services (Amplify, Step Functions, SageMaker, OpenSearch Serverless) that can be provisioned and deployed using Infrastructure as Code (e.g., AWS CDK or Terraform) within the hackathon timeframe.
+
+Addresses a Real Problem: It tackles a massive, well-known issue in pharma with a cutting-edge tech solution.
+
+Clear Innovation (The Memory): The Periodic Memory System is a novel twist on standard AI/ML pipelines, showing a deep understanding of MLOps and continuous learning. It's a feature you can easily demonstrate.
+
+Scalability: By using serverless and batch processing, the system can scale from screening 1,000 compounds to 1 billion without changing the architecture.
+
+Great Demo Potential:
+
+Show the "Before Memory" vs. "After Memory" results: How the AI's second run avoids the mistakes of the first.
+
+Visualize the generative chemistry creating new molecules.
+
+Show a 3D visualization of the top candidate docked inside the protein.
+
+Technology Stack Summary
+Frontend: AWS Amplify, React.js/Streamlit, 3D.js (for molecule visualization).
+
+Compute & Orchestration: AWS Step Functions, AWS Lambda, AWS Batch/Fargate.
+
+AI/ML: Amazon SageMaker (PyTorch/TensorFlow), Amazon OpenSearch Serverless (Vector DB).
+
+Storage: Amazon S3, Amazon DynamoDB.
+
+Infrastructure: AWS CDK (Python/TypeScript) for one-click deployment.
