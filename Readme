@@ -44,5 +44,42 @@ oncoai/
 │   └── workflow.asl.json
 └── deploy.sh
 
+Quick Start Guide
+Clone the repository:
+git clone https://github.com/your-org/oncoai.git
+cd oncoai
 
+Set up environment:
+cp .env.example .env
+# Edit .env with your AWS configuration
+
+Deploy:
+chmod +x deploy.sh
+./deploy.sh
+
+Access the application:
+
+Frontend: http://your-amplify-app.com
+
+API: https://your-api-gateway-url.amazonaws.com/prod
+
+Run a test campaign:
+python3 test_oncoai.py https://your-api-gateway-url.amazonaws.com/prod
+
+Key Features Implemented
+✅ Fully Serverless Architecture - All AWS services are serverless
+
+✅ Periodic Memory System - OpenSearch vector database for learning from failures
+
+✅ Generative Chemistry - CVAE for novel molecule generation
+
+✅ Multi-objective Optimization - Binding, toxicity, and drug-likeness
+
+✅ Computational Validation - AutoDock Vina integration
+
+✅ Real-time Dashboard - React.js with 3D visualization
+
+✅ One-click Deployment - AWS CDK infrastructure as code
+
+✅ Comprehensive Testing - Integration tests included
 
