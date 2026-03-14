@@ -1,1 +1,48 @@
 Generative brain called OncoAI which is an intelligent platform designed to accelerate cancer drug discovery using artificial intelligence. Instead of manually testing thousands of chemical compounds, our system automatically analyzes molecular data, predicts drug–target interactions, and identifies promising inhibitors for cancer-related proteins like EGFR. By combining AI-driven screening with computational validation, OncoAI dramatically reduces the time and cost required to identify potential cancer therapies. Our vision is to empower researchers with an automated pipeline that speeds up the discovery of life-saving cancer drugs.
+
+
+oncoai/
+├── infrastructure/
+│   ├── cdk/
+│   │   ├── bin/
+│   │   │   └── oncoai-stack.ts
+│   │   ├── lib/
+│   │   │   └── oncoai-stack.ts
+│   │   └── package.json
+│   └── docker/
+│       ├── docking/
+│       │   ├── Dockerfile
+│       │   └── docking_worker.py
+│       └── ai-models/
+│           └── Dockerfile
+├── backend/
+│   ├── lambda/
+│   │   ├── orchestrator/
+│   │   │   └── index.py
+│   │   ├── memory_store/
+│   │   │   └── index.py
+│   │   ├── generator/
+│   │   │   └── index.py
+│   │   ├── predictor/
+│   │   │   └── index.py
+│   │   └── toxicity_checker/
+│   │       └── index.py
+│   └── models/
+│       ├── generative_model.py
+│       ├── gnn_predictor.py
+│       └── train_models.py
+├── frontend/
+│   ├── src/
+│   │   ├── App.js
+│   │   ├── components/
+│   │   │   ├── Dashboard.js
+│   │   │   ├── MoleculeViewer.js
+│   │   │   └── ResultsTable.js
+│   │   └── index.js
+│   └── package.json
+├── stepfunctions/
+│   └── workflow.asl.json
+└── deploy.sh
+
+
+
