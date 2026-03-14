@@ -1,0 +1,137 @@
+{
+  "Comment": "OncoAI Drug Discovery Workflow with Periodic Memory",
+  "StartAt": "GenerateMolecules",
+  "States": {
+    "GenerateMolecules": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:123456789012:function:OncoAIStack-GeneratorFn",
+      "Next": "RecallMemory",
+      "ResultPath": "$.generation"
+    },
+    "RecallMemory": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:123456789012:function:OncoAIStack-MemoryStoreFn",
+      "Parameters": {
+        "action": "query",
+        "candidates.$": "$.generation.generated_molecules",
+        "protein_target.$": "$.protein_target"
+      },
+      "Next": "PredictBinding",
+      "ResultPath": "$.memory"
+    },
+    "PredictBinding": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:123456789012:function:OncoAIStack-PredictorFn",
+      "Parameters": {
+        "molecules.$": "$.generation.generated_molecules",
+        "protein_target.$": "$.protein_target",
+        "memory_context.$": "$.memory.memory_context"
+      },
+      "Next": "CheckToxicity",
+      "ResultPath": "$.predictions"
+    },
+    "CheckToxicity": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:123456789012:function:OncoAIStack-ToxicityCheckerFn",
+      "Parameters": {
+        "molecules.$": "$.predictions.predictions"
+      },
+      "Next": "ParallelDocking",
+      "ResultPath": "$.safe"
+    },
+    "ParallelDocking": {
+      "Type": "Parallel",
+      "Branches": [
+        {
+          "StartAt": "DockingBatch1",
+          "States": {
+            "DockingBatch1": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::batch:submitJob.sync",
+              "Parameters": {
+                "JobDefinition": "arn:aws:batch:us-east-1:123456789012:job-definition/OncoAIStack-DockingJobDef",
+                "JobQueue": "arn:aws:batch:us-east-1:123456789012:job-queue/OncoAIStack-DockingQueue",
+                "JobName": "docking-batch-1",
+                "ContainerOverrides": {
+                  "Environment": [
+                    {
+                      "Name": "BATCH_ID",
+                      "Value": "1"
+                    }
+                  ]
+                },
+                "Parameters": {
+                  "molecules.$": "$[0]"
+                }
+              },
+              "End": true
+            }
+          }
+        },
+        {
+          "StartAt": "DockingBatch2",
+          "States": {
+            "DockingBatch2": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::batch:submitJob.sync",
+              "Parameters": {
+                "JobDefinition": "arn:aws:batch:us-east-1:123456789012:job-definition/OncoAIStack-DockingJobDef",
+                "JobQueue": "arn:aws:batch:us-east-1:123456789012:job-queue/OncoAIStack-DockingQueue",
+                "JobName": "docking-batch-2",
+                "ContainerOverrides": {
+                  "Environment": [
+                    {
+                      "Name": "BATCH_ID",
+                      "Value": "2"
+                    }
+                  ]
+                },
+                "Parameters": {
+                  "molecules.$": "$[1]"
+                }
+              },
+              "End": true
+            }
+          }
+        }
+      ],
+      "Next": "CombineResults",
+      "ResultPath": "$.docking"
+    },
+    "CombineResults": {
+      "Type": "Pass",
+      "Parameters": {
+        "docking_results.$": "$[0].docking_results",
+        "docking_results2.$": "$[1].docking_results"
+      },
+      "Next": "UpdateMemory"
+    },
+    "UpdateMemory": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:123456789012:function:OncoAIStack-MemoryStoreFn",
+      "Parameters": {
+        "action": "store",
+        "predictions.$": "$.predictions.predictions",
+        "validation.$": "$.docking_results"
+      },
+      "Next": "RankCandidates"
+    },
+    "RankCandidates": {
+      "Type": "Pass",
+      "Parameters": {
+        "candidates.$": "$.docking_results"
+      },
+      "Next": "NotifyCompletion"
+    },
+    "NotifyCompletion": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:123456789012:function:OncoAIStack-OrchestratorFn",
+      "Parameters": {
+        "action": "notify",
+        "campaign_id.$": "$.campaign_id",
+        "results.$": "$.docking_results"
+      },
+      "End": true
+    }
+  }
+}
